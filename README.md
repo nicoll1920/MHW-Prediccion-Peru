@@ -46,7 +46,7 @@ Se ha desarrollado un dashboard en Python, publicado en GitHub Pages, que permit
 * Gráficos dinámicos (Plotly) de la SST y sus anomalías.
 * Tablas comparativas entre MHW observadas vs. predichas.
 
-**🔗 [INSERTA AQUÍ TU ENLACE AL DASHBOARD DE GITHUB PAGES]**
+**🔗 [https://github.com/nicoll1920/MHW-Prediccion-Peru]**
 
 ---
 
