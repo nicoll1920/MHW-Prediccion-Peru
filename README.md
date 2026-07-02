@@ -1,9 +1,9 @@
 # 🌊 Proyecto Integrador: Predicción e Identificación de Olas de Calor Marinas (MHW) en la Costa del Perú (1990-2025)
 
-## 📌 Curso: Ciencia de Datos Ambientales (CDA)
+##  Curso: Ciencia de Datos Ambientales (CDA)
 **Universidad de Ingeniería y Tecnología (UTEC)** ---
 
-## 📋 1. Descripción del Problema Ambiental e Indicadores
+##  1. Descripción del Problema Ambiental e Indicadores
 
 ### Contexto Territorial y Relevancia
 Las **Olas de Calor Marinas (MHW)** son anomalías térmicas prolongadas en el océano que causan graves impactos en los ecosistemas marinos y la pesca. Este proyecto aborda la problemática analizando y prediciendo estas anomalías en tres zonas oceanográficas clave de la costa peruana: **Norte, Centro y Sur**.
@@ -15,19 +15,19 @@ Las **Olas de Calor Marinas (MHW)** son anomalías térmicas prolongadas en el o
 
 ---
 
-## 🛠️ 2. Arquitectura y Flujo de Datos
+##  2. Arquitectura y Flujo de Datos
 
 1. **Ingesta:** Uso de datos satelitales de la **NOAA OISST**, integrados con el Índice Costero El Niño (**ICEN**) y variables de reanálisis **ERA5**.
 2. **Pipeline de Preparación:** Carga de datos $\rightarrow$ Limpieza $\rightarrow$ Cálculo de climatología (Hobday) $\rightarrow$ Construcción de variables predictoras (rezagos temporales / lags).
 
 ---
 
-## 📊 3. Análisis Descriptivo (EDA)
+##  3. Análisis Descriptivo (EDA)
 Se realizó una inspección exhaustiva de la serie temporal (1990-2025), tratamiento de valores atípicos, validación de hipótesis sobre la influencia de variables meteorológicas en la SST y división del análisis para las zonas Norte, Centro y Sur.
 
 ---
 
-## 🤖 4. Modelado Analítico y Predictivo (Regresión)
+##  4. Modelado Analítico y Predictivo (Regresión)
 
 A diferencia de enfoques tradicionales de clasificación, este proyecto implementa una metodología en dos fases:
 1. **Predicción de la Temperatura:** Entrenamiento de modelos **Random Forest Regressor** para estimar la Temperatura Superficial del Mar (SST) basándose en valores rezagados e índices climáticos.
@@ -39,7 +39,7 @@ A diferencia de enfoques tradicionales de clasificación, este proyecto implemen
 
 ---
 
-## 🌐 5. Dashboard Interactivo (GitHub Pages)
+##  5. Dashboard Interactivo (GitHub Pages)
 
 Se ha desarrollado un dashboard en Python, publicado en GitHub Pages, que permite explorar visualmente los resultados:
 * Mapa interactivo (Folium) de las zonas de estudio.
