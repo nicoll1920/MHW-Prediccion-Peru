@@ -1,0 +1,971 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Olas de calor marinas — Costa del Perú 1990-2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#0B1F2A;
+    --navy:#123049;
+    --navy-deep:#081826;
+    --teal:#1C7C93;
+    --teal-light:#5FA8B8;
+    --coral:#DD5A36;
+    --coral-soft:#F1D9CE;
+    --sand:#EFE6D5;
+    --bg:#F2F5F4;
+    --card:#FFFFFF;
+    --line:#DBE2E0;
+    --muted:#5C6B70;
+    --mono:'IBM Plex Mono',monospace;
+    --serif:'Fraunces',serif;
+    --sans:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--teal);}
+  h1,h2,h3,h4{font-family:var(--serif);font-weight:600;color:var(--navy-deep);margin:0 0 .5em;}
+  p{margin:0 0 1em;color:var(--ink);}
+  .mono{font-family:var(--mono);}
+  .eyebrow{
+    font-family:var(--mono);
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:.72rem;
+    color:var(--teal);
+    font-weight:600;
+    margin-bottom:.6em;
+    display:block;
+  }
+  img,svg{max-width:100%;}
+
+  /* ---------- Layout shell ---------- */
+  .shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh;}
+  nav.sidebar{
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    background:var(--navy-deep);
+    color:#CFE1E6;
+    padding:28px 22px;
+    border-right:1px solid #06131e;
+  }
+  nav.sidebar .brand{
+    font-family:var(--serif);
+    font-size:1.05rem;
+    color:#fff;
+    line-height:1.25;
+    margin-bottom:6px;
+  }
+  nav.sidebar .brand-sub{
+    font-family:var(--mono);
+    font-size:.68rem;
+    color:var(--teal-light);
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    margin-bottom:28px;
+    display:block;
+  }
+  nav.sidebar ol{list-style:none;margin:0;padding:0;counter-reset:sec;}
+  nav.sidebar li{counter-increment:sec;margin-bottom:2px;}
+  nav.sidebar a{
+    display:flex;gap:10px;align-items:baseline;
+    text-decoration:none;
+    color:#A9C0C8;
+    font-size:.86rem;
+    padding:8px 8px;
+    border-radius:6px;
+    transition:background .15s, color .15s;
+  }
+  nav.sidebar a::before{
+    content:counter(sec,decimal-leading-zero);
+    font-family:var(--mono);
+    font-size:.72rem;
+    color:var(--teal-light);
+    opacity:.8;
+  }
+  nav.sidebar a:hover, nav.sidebar a.active{background:#0F2A3E;color:#fff;}
+  nav.sidebar .side-footer{
+    margin-top:32px;padding-top:18px;border-top:1px solid #17364a;
+    font-family:var(--mono);font-size:.68rem;color:#6E8A93;line-height:1.6;
+  }
+
+  main{min-width:0;}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    background:
+      radial-gradient(ellipse at 80% -10%, rgba(28,124,147,.35), transparent 55%),
+      linear-gradient(180deg,var(--navy-deep) 0%, var(--navy) 100%);
+    color:#EAF3F4;
+    padding:72px 56px 40px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero .kicker{
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em;
+    font-size:.72rem;color:var(--teal-light);margin-bottom:18px;display:block;
+  }
+  .hero h1{
+    color:#fff;font-size:clamp(1.9rem,3.4vw,3.1rem);
+    font-weight:600;max-width:16ch;letter-spacing:-.01em;
+  }
+  .hero .subtitle{
+    color:#C6DBDF;max-width:60ch;font-size:1.05rem;margin-top:10px;
+  }
+  .hero .meta-row{
+    display:flex;flex-wrap:wrap;gap:28px;margin-top:34px;
+    font-family:var(--mono);font-size:.78rem;color:#9FC0C7;
+  }
+  .hero .meta-row strong{display:block;color:#fff;font-family:var(--sans);font-size:.86rem;font-weight:600;}
+
+  /* Signature: SST range strip by zone (real quartile data) */
+  .stripe-wrap{margin-top:44px;}
+  .stripe-label{font-family:var(--mono);font-size:.68rem;color:#8FB4BC;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
+  .stripe{
+    display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:center;margin-bottom:9px;
+  }
+  .stripe .zname{font-family:var(--mono);font-size:.78rem;color:#D8E9EB;text-align:right;}
+  .stripe .track{
+    position:relative;height:22px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;
+  }
+  .stripe .range{
+    position:absolute;top:0;bottom:0;border-radius:4px;
+    background:linear-gradient(90deg,#2C6E82,var(--coral));
+  }
+  .stripe .median-mark{
+    position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;
+  }
+
+  /* ---------- Sections ---------- */
+  section{
+    padding:56px 56px;
+    border-bottom:1px solid var(--line);
+    max-width:1180px;
+  }
+  section .head{margin-bottom:26px;}
+  section h2{font-size:1.55rem;}
+  .lead{font-size:1.02rem;color:#33474E;max-width:78ch;}
+
+  /* Executive summary */
+  .exec{
+    background:linear-gradient(180deg,#0F3550,#123049);
+    color:#EAF3F4;
+    margin:0;max-width:none;padding:52px 56px 46px;
+  }
+  .exec h2{color:#fff;}
+  .exec .lead{color:#CFE3E7;}
+  .kpi-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:14px;margin-top:28px;
+  }
+  .kpi{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;padding:18px 18px 16px;
+  }
+  .kpi .val{font-family:var(--serif);font-size:1.9rem;font-weight:700;color:#fff;line-height:1;}
+  .kpi .lbl{font-family:var(--mono);font-size:.72rem;color:#A9C6CC;margin-top:8px;line-height:1.4;}
+  .exec-finding{
+    margin-top:26px;padding:16px 18px;border-left:3px solid var(--coral);
+    background:rgba(221,90,54,.12);border-radius:0 8px 8px 0;font-size:.94rem;color:#F3E4DE;
+  }
+  .exec-finding strong{color:#fff;}
+
+  /* Cards / tables */
+  .grid-2{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;margin-top:22px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px;}
+  @media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;}
+  .card h3{font-size:1.02rem;margin-bottom:12px;}
+  .card h4{font-size:.92rem;color:var(--teal);font-family:var(--sans);font-weight:600;margin-bottom:10px;}
+
+  table{width:100%;border-collapse:collapse;font-size:.84rem;}
+  thead th{
+    text-align:left;font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--muted);border-bottom:2px solid var(--line);padding:8px 10px;
+  }
+  tbody td{padding:8px 10px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.82rem;}
+  tbody td:first-child, thead th:first-child{font-family:var(--sans);}
+  tbody tr:hover{background:#F7FAF9;}
+  .tag{
+    display:inline-block;font-family:var(--mono);font-size:.66rem;padding:2px 8px;border-radius:20px;
+    background:var(--sand);color:#7A5B2E;
+  }
+  .tag.best{background:#DCEFE6;color:#1F6B4D;}
+  .tag.warn{background:var(--coral-soft);color:#9C3B1D;}
+
+  .table-scroll{overflow-x:auto;}
+
+  ul.clean{margin:0;padding-left:1.1em;}
+  ul.clean li{margin-bottom:8px;}
+
+  .pipeline{
+    display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:18px;
+    font-family:var(--mono);font-size:.78rem;
+  }
+  .pipeline .step{
+    background:var(--navy);color:#EAF3F4;padding:8px 14px;border-radius:20px;
+  }
+  .pipeline .arrow{color:var(--teal);}
+
+  .callout{
+    border:1px solid var(--line);border-left:4px solid var(--teal);
+    background:#F7FBFB;border-radius:0 10px 10px 0;padding:18px 20px;
+  }
+  .callout.coral{border-left-color:var(--coral);background:#FDF4F0;}
+
+  .chart-box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:18px;}
+  .chart-box canvas{max-height:340px;}
+  .chart-note{font-size:.78rem;color:var(--muted);margin-top:10px;}
+
+  #map{height:380px;border-radius:12px;border:1px solid var(--line);margin-top:16px;}
+
+  .num-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .num-row .pill{
+    font-family:var(--mono);font-size:.74rem;background:#EEF3F2;border:1px solid var(--line);
+    padding:6px 12px;border-radius:20px;color:var(--navy);
+  }
+
+  footer{
+    padding:36px 56px 60px;color:var(--muted);font-family:var(--mono);font-size:.76rem;line-height:1.8;
+  }
+  footer .authors{color:var(--ink);font-weight:600;font-family:var(--sans);font-size:.86rem;margin-bottom:4px;}
+
+  .section-num{
+    font-family:var(--mono);color:var(--teal);font-size:.8rem;font-weight:600;
+  }
+
+  @media(max-width:820px){
+    .shell{grid-template-columns:1fr;}
+    nav.sidebar{position:relative;height:auto;}
+    section, .hero, .exec, footer{padding-left:24px;padding-right:24px;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <nav class="sidebar" id="sidenav">
+    <div class="brand">Olas de calor marinas<br>costa del Perú</div>
+    <span class="brand-sub">Ciencia de Datos Ambientales · UTEC</span>
+    <ol>
+      <li><a href="#contexto">Problema ambiental</a></li>
+      <li><a href="#arquitectura">Arquitectura y datos</a></li>
+      <li><a href="#eda">Análisis descriptivo</a></li>
+      <li><a href="#metodologia">Metodología Hobday</a></li>
+      <li><a href="#modelo">Modelo predictivo</a></li>
+      <li><a href="#resultados">Resultados 2026</a></li>
+      <li><a href="#contribuciones">Contribuciones</a></li>
+      <li><a href="#conclusiones">Conclusiones</a></li>
+    </ol>
+    <div class="side-footer">
+      NOAA OISST v2.1 · ICEN · ERA5<br>
+      1990 – 2026 · 4 zonas costeras<br>
+      Random Forest Regressor
+    </div>
+  </nav>
+
+  <main>
+    <!-- ================= HERO ================= -->
+    <header class="hero">
+      <span class="kicker">Proyecto Integrador · Ciencia de Datos Ambientales</span>
+      <h1>Predicción de la temperatura superficial del mar e identificación de olas de calor marinas en la costa del Perú</h1>
+      <p class="subtitle">Un modelo de Random Forest estima la SST diaria por zona a partir de NOAA OISST (1990–2026) y, sobre esa temperatura predicha, aplica la metodología de Hobday et al. (2016) para detectar olas de calor marinas (MHW) frente a la costa peruana.</p>
+      <div class="meta-row">
+        <div><strong>Periodo de registro</strong>1990–01 a 2026–06 (438 archivos NOAA)</div>
+        <div><strong>Zonas de análisis</strong>Norte · Centro · Sur · Perú total</div>
+        <div><strong>Modelo</strong>Random Forest Regressor, 3 configuraciones</div>
+        <div><strong>Entrega</strong>UTEC · 02 de julio de 2026</div>
+      </div>
+
+      <div class="stripe-wrap">
+        <span class="stripe-label">SST diaria observada por zona (°C) — rango histórico 1990–2026, marca = mediana</span>
+        <div id="stripes"></div>
+      </div>
+    </header>
+
+    <!-- ================= RESUMEN EJECUTIVO ================= -->
+    <section class="exec" style="max-width:none;">
+      <span class="eyebrow" style="color:var(--teal-light)">Resumen ejecutivo</span>
+      <h2>El mar frente al Perú lleva 36 años calentándose por episodios, no de forma lineal</h2>
+      <p class="lead">
+        Entre 1990 y 2026 se identificaron <strong>156 olas de calor marinas</strong> en la costa peruana usando el criterio de
+        Hobday et al. (2016) sobre SST observada (percentil 90 diario, duración mínima de 5 días). El evento más severo del
+        registro ocurrió entre mayo de 1997 y junio de 1998 en la zona Centro, con una duración de 408 días y una intensidad
+        acumulada de 1 055 °C·día — muy por encima del resto de eventos clasificados como "extremos" (≥200 °C·día). 2023 fue,
+        de lejos, el año con más días bajo condición MHW en las cuatro zonas analizadas.
+        Para predecir la SST se entrenaron tres configuraciones de Random Forest por zona con una partición cronológica 70/30;
+        la configuración más profunda (<span class="mono">RF_3_profundo</span>) fue la mejor en las tres zonas, con un
+        desempeño sobresaliente en el conjunto de prueba (R² entre 0.995 y 0.998, RMSE entre 0.11 °C y 0.16 °C). Al aplicar
+        Hobday sobre esa SST predicha, la detección de MHW alcanzó un F1 de hasta 0.94.
+      </p>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="val">156</div><div class="lbl">Eventos MHW observados 1990–2026 (4 zonas)</div></div>
+        <div class="kpi"><div class="val">0.105 °C</div><div class="lbl">Mejor RMSE de SST — zona Sur, RF_3_profundo</div></div>
+        <div class="kpi"><div class="val">0.998</div><div class="lbl">Mejor R² de SST — zona Sur, RF_3_profundo</div></div>
+        <div class="kpi"><div class="val">0.94</div><div class="lbl">F1 de MHW derivada — mejor caso (zona Norte)</div></div>
+        <div class="kpi"><div class="val">408 días</div><div class="lbl">Evento más largo (Centro, 1997–1998, categoría IV)</div></div>
+        <div class="kpi"><div class="val">36 años</div><div class="lbl">Cobertura de NOAA OISST usada en el análisis</div></div>
+      </div>
+      <div class="exec-finding">
+        <strong>Hallazgo de validación en tiempo real (ene–mar 2026):</strong> al usar el mejor modelo por zona para pronosticar
+        de forma recursiva los 90 días de 2026 disponibles, el modelo <strong>no generó ninguna alerta MHW</strong>, mientras
+        que la SST observada sí produjo 4 eventos reales (2 en Norte, 2 en Centro) y un evento largo en Sur (86 días, categoría
+        "Alta"). Esto expone el principal riesgo operativo del enfoque: pequeños errores de predicción cerca del umbral P90 se
+        traducen en falsos negativos de MHW en horizontes de pronóstico recursivo.
+      </div>
+    </section>
+
+    <!-- ================= 1. CONTEXTO ================= -->
+    <section id="contexto">
+      <div class="head">
+        <span class="section-num">01 — Descripción del problema ambiental</span>
+        <h2>Olas de calor marinas frente a la costa peruana</h2>
+        <p class="lead">
+          Las olas de calor marinas (Marine Heatwaves, MHW) son periodos prolongados en los que la temperatura superficial
+          del mar (SST) se mantiene anormalmente alta respecto a su comportamiento climatológico. En la costa peruana estos
+          eventos pueden alterar los ecosistemas marinos, debilitar el afloramiento costero, modificar la disponibilidad de
+          recursos pesqueros y están asociados a condiciones oceanográficas de tipo El Niño. El proyecto aborda dos preguntas
+          en cadena: <em>¿se puede estimar la SST diaria por zona a partir de su comportamiento previo?</em> y, si es así,
+          <em>¿la SST estimada permite anticipar la ocurrencia de una MHW antes de que se confirme con datos observados?</em>
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Indicadores ambientales clave</h3>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Indicador</th><th>Unidad</th><th>Uso en el proyecto</th></tr></thead>
+            <tbody>
+              <tr><td>SST promedio regional/zonal</td><td>°C</td><td>Variable oceanográfica principal y variable objetivo del modelo</td></tr>
+              <tr><td>Anomalía climatológica de SST</td><td>°C</td><td>Desviación frente al comportamiento normal del día del año</td></tr>
+              <tr><td>Días bajo condición MHW</td><td>días</td><td>Frecuencia anual o zonal de olas de calor marinas</td></tr>
+              <tr><td>Duración del evento</td><td>días</td><td>Persistencia de cada ola de calor marina</td></tr>
+              <tr><td>Intensidad acumulada</td><td>°C·día</td><td>Severidad total del evento (integra anomalía × duración)</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Hipótesis de trabajo</h3>
+          <ul class="clean">
+            <li>La SST diaria puede estimarse a partir de su comportamiento previo (rezagos, medias móviles), variables
+              estacionales y, cuando están disponibles, variables oceanográficas/climáticas complementarias (ICEN, viento).</li>
+            <li>El desempeño de Random Forest puede variar entre las zonas Norte, Centro y Sur por diferencias oceanográficas
+              regionales (afloramiento, latitud, influencia de El Niño costero).</li>
+            <li>Aplicar Hobday sobre la SST predicha permite aproximar la ocurrencia de MHW, pero la calidad de la detección
+              depende directamente de la precisión térmica del modelo cerca del umbral P90.</li>
+          </ul>
+          <h4 style="margin-top:18px;">Resultado de la validación</h4>
+          <p style="font-size:.88rem;">Las tres hipótesis se sostienen con evidencia cuantitativa: R² &gt; 0.99 en las tres
+            zonas, diferencias claras de desempeño entre zonas (RMSE de 0.105 °C en Sur vs. 0.161 °C en Norte), y un F1 de
+            MHW derivado consistentemente menor al F1 implícito de una predicción perfecta — confirmando la sensibilidad al
+            umbral P90.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 2. ARQUITECTURA ================= -->
+    <section id="arquitectura">
+      <div class="head">
+        <span class="section-num">02 — Arquitectura y flujo de datos</span>
+        <h2>De NetCDF satelital a eventos MHW por zona</h2>
+        <p class="lead">La fuente principal es NOAA OISST v2.1 en formato NetCDF, recortada a la ventana costera peruana.
+          ICEN y ERA5 se integran como variables explicativas opcionales cuando están disponibles.</p>
+      </div>
+
+      <div class="card">
+        <h3>Fuentes de datos utilizadas</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Fuente</th><th>Formato</th><th>Variable principal</th><th>Uso</th><th>Disponibilidad en la corrida</th></tr></thead>
+          <tbody>
+            <tr><td>NOAA OISST v2.1</td><td>NetCDF (.nc)</td><td>SST diaria</td><td>Base para detección MHW y variable objetivo del modelo</td><td><span class="tag best">438 archivos, 1990–2026</span></td></tr>
+            <tr><td>ICEN (IGP / ENFEN)</td><td>CSV</td><td>Índice Costero El Niño</td><td>Variable explicativa opcional, rezagada un mes (<span class="mono">icen_lag1</span>)</td><td><span class="tag best">Disponible</span></td></tr>
+            <tr><td>ERA5</td><td>NetCDF (.nc)</td><td>Viento u10 / v10</td><td>Variable explicativa opcional de forzamiento atmosférico</td><td><span class="tag best">Disponible</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <h3 style="margin-top:22px;">Pipeline de procesamiento</h3>
+        <div class="pipeline">
+          <span class="step">Carga NetCDF</span><span class="arrow">→</span>
+          <span class="step">Validación / limpieza</span><span class="arrow">→</span>
+          <span class="step">Promedio espacial por zona</span><span class="arrow">→</span>
+          <span class="step">Climatología + umbral P90</span><span class="arrow">→</span>
+          <span class="step">Detección MHW observada</span><span class="arrow">→</span>
+          <span class="step">Ingeniería de variables</span><span class="arrow">→</span>
+          <span class="step">Random Forest (SST)</span><span class="arrow">→</span>
+          <span class="step">Hobday sobre SST predicha</span><span class="arrow">→</span>
+          <span class="step">Comparación y conclusiones</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <h3>Mapa del área de estudio</h3>
+        <p class="chart-note" style="margin-top:0;">Las cajas representan una aproximación de la división regional
+          (latitudinal) usada para promediar la SST del dominio NOAA OISST recortado a la costa peruana. Los marcadores son
+          referencias geográficas, no estaciones de muestreo puntual: la fuente es un producto satelital de grilla.</p>
+        <div id="map"></div>
+      </div>
+    </section>
+
+    <!-- ================= 3. EDA ================= -->
+    <section id="eda">
+      <div class="head">
+        <span class="section-num">03 — Análisis descriptivo (EDA)</span>
+        <h2>13 316 días de SST por zona, sin huecos ni outliers artificiales</h2>
+        <p class="lead">Tras el promedio espacial por zona, cada serie cubre 13 316 días (1990-01-01 a 2026-06-16) sin fechas
+          faltantes y sin valores nulos. La detección de outliers con el criterio 3×IQR no encontró observaciones fuera de
+          rango en ninguna zona: los valores extremos de SST son señal ambiental real, no errores de datos, por lo que se
+          conservaron íntegramente para el análisis de eventos extremos.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Estadísticos de SST por zona (°C)</h3>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Zona</th><th>n</th><th>Media</th><th>Desv. est.</th><th>Mín</th><th>Q1</th><th>Mediana</th><th>Q3</th><th>Máx</th></tr></thead>
+            <tbody id="eda-table"></tbody>
+          </table>
+          </div>
+          <h4 style="margin-top:18px;">Continuidad y calidad de datos</h4>
+          <div class="num-row">
+            <span class="pill">0 valores faltantes</span>
+            <span class="pill">0 fechas discontinuas</span>
+            <span class="pill">0 outliers (3×IQR)</span>
+            <span class="pill">13 316 días / zona</span>
+          </div>
+        </div>
+        <div class="chart-box" style="margin-top:0;">
+          <h4>Rango intercuartílico de SST por zona</h4>
+          <canvas id="chartBox"></canvas>
+          <p class="chart-note">Barra = rango Q1–Q3, línea = mediana, bigotes = mín–máx histórico. Norte es la zona más
+            cálida y con menor dispersión relativa; Sur es la más fría y con mayor amplitud térmica.</p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:24px;">
+        <div class="chart-box" style="margin-top:0;">
+          <h4>Años con más días bajo condición MHW (top 5 por zona)</h4>
+          <canvas id="chartTopYears"></canvas>
+          <p class="chart-note">2023 domina en las cuatro zonas. 2026 aparece entre los años más cálidos pese a estar
+            incompleto en el registro disponible (datos hasta el 16 de junio de 2026).</p>
+        </div>
+        <div class="card" style="margin-top:0;">
+          <h3>Eventos MHW clasificados por intensidad acumulada</h3>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Zona</th><th>I · Baja</th><th>II · Moderada</th><th>III · Alta</th><th>IV · Extrema</th><th>Total</th></tr></thead>
+            <tbody>
+              <tr><td>Centro</td><td>29</td><td>7</td><td>0</td><td>3</td><td><strong>39</strong></td></tr>
+              <tr><td>Norte</td><td>24</td><td>8</td><td>4</td><td>3</td><td><strong>39</strong></td></tr>
+              <tr><td>Sur</td><td>32</td><td>8</td><td>3</td><td>2</td><td><strong>45</strong></td></tr>
+              <tr><td>Perú total</td><td>21</td><td>8</td><td>2</td><td>2</td><td><strong>33</strong></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="chart-note">Categorías: I Baja &lt;25 °C·día · II Moderada 25–99 · III Alta 100–199 · IV Extrema ≥200
+            °C·día. La mayoría de eventos (~70%) son de intensidad baja o moderada; los eventos extremos son raros pero
+            concentran gran parte del impacto acumulado, como el de 1997–1998 en Centro.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 4. METODOLOGIA ================= -->
+    <section id="metodologia">
+      <div class="head">
+        <span class="section-num">04 — Metodología de detección de MHW</span>
+        <h2>Criterios de Hobday et al. (2016)</h2>
+      </div>
+      <div class="grid-2">
+        <div class="callout">
+          <h3>Criterios aplicados</h3>
+          <ul class="clean">
+            <li>Climatología diaria calculada sobre el baseline 1990–2025, con ventana de ±5 días y suavizado circular de 31 días.</li>
+            <li>Umbral diario del percentil 90 de SST para cada día del año.</li>
+            <li>Día candidato a MHW cuando la SST observada (o predicha) supera el umbral P90.</li>
+            <li>Un evento se confirma cuando la condición persiste al menos <strong>5 días</strong>.</li>
+            <li>Se unen eventos separados por brechas cortas de hasta <strong>2 días</strong> sin superar el umbral.</li>
+          </ul>
+        </div>
+        <div class="callout coral">
+          <h3>Separación metodológica clave</h3>
+          <p>El modelo de machine learning <strong>no predice directamente</strong> si ocurre una ola de calor marina.
+            El modelo predice la SST diaria. Sobre esa SST predicha se aplica la misma lógica de Hobday usada para los datos
+            observados, generando una detección de MHW <em>derivada</em>. Esta separación evita mezclar el error de
+            predicción térmica con el criterio climático de detección, y permite auditar en qué parte del proceso aparecen
+            los errores.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 5. MODELO ================= -->
+    <section id="modelo">
+      <div class="head">
+        <span class="section-num">05 — Desarrollo y selección del modelo</span>
+        <h2>Random Forest Regressor, tres configuraciones por zona</h2>
+        <p class="lead">La partición train/test es cronológica (70/30): el primer 70% de los días de cada zona se usa para
+          entrenar y el 30% final —el periodo más reciente— se reserva para prueba, evitando fuga de información futura.
+          Las variables predictoras usan solo información previa al día objetivo: rezagos de SST (1, 3, 7, 14, 30 días),
+          medias móviles previas, anomalía y exceso térmico rezagados, estacionalidad (seno/coseno del día del año), y
+          cuando están disponibles, ICEN rezagado un mes y viento ERA5 rezagado.</p>
+      </div>
+
+      <div class="card">
+        <h3>Configuraciones de Random Forest evaluadas</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Configuración</th><th>n_estimators</th><th>max_depth</th><th>min_samples_leaf</th><th>min_samples_split</th></tr></thead>
+          <tbody>
+            <tr><td>RF_1_conservador</td><td>200</td><td>8</td><td>8</td><td>10</td></tr>
+            <tr><td>RF_2_intermedio</td><td>400</td><td>14</td><td>4</td><td>8</td></tr>
+            <tr><td>RF_3_profundo</td><td>600</td><td>Sin límite</td><td>2</td><td>4</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:20px;">
+        <div class="chart-box" style="margin-top:0;">
+          <h4>RMSE de SST por zona y configuración</h4>
+          <canvas id="chartRmse"></canvas>
+        </div>
+        <div class="chart-box" style="margin-top:0;">
+          <h4>R² de SST por zona y configuración</h4>
+          <canvas id="chartR2"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <h3>Tabla comparativa completa — MAE, RMSE, R² y desempeño de MHW derivada</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Zona</th><th>Modelo</th><th>MAE (°C)</th><th>RMSE (°C)</th><th>R²</th><th>Bias (°C)</th><th>Precisión MHW</th><th>Recall MHW</th><th>F1 MHW</th><th>Accuracy MHW</th></tr></thead>
+          <tbody id="modelos-table"></tbody>
+        </table>
+        </div>
+        <p class="chart-note">"MHW derivada" = evaluación de días MHW obtenidos al aplicar Hobday sobre la SST predicha en el
+          conjunto de prueba, comparados contra la MHW observada real del mismo periodo.</p>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <h3>Selección del mejor modelo por zona (según menor RMSE)</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Zona</th><th>Modelo elegido</th><th>MAE</th><th>RMSE</th><th>R²</th><th>F1 MHW derivada</th></tr></thead>
+          <tbody>
+            <tr><td>Centro</td><td><span class="tag best">RF_3_profundo</span></td><td>0.0864</td><td>0.1254</td><td>0.9976</td><td>0.9344</td></tr>
+            <tr><td>Norte</td><td><span class="tag best">RF_3_profundo</span></td><td>0.1222</td><td>0.1615</td><td>0.9947</td><td>0.9421</td></tr>
+            <tr><td>Sur</td><td><span class="tag best">RF_3_profundo</span></td><td><strong>0.0724</strong></td><td><strong>0.1054</strong></td><td><strong>0.9978</strong></td><td>0.9358</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="chart-note"><strong>RF_3_profundo</strong> (el más complejo, sin límite de profundidad) fue el mejor en
+          las tres zonas, y la zona <strong>Sur</strong> obtuvo el mejor resultado global del proyecto. Esto sugiere que la
+          SST en la zona Sur tiene una dinámica más autorregresiva y estacional (más fácil de aprender con rezagos), mientras
+          que Norte —más próxima a la influencia directa de El Niño— es la zona con mayor error residual.</p>
+      </div>
+    </section>
+
+    <!-- ================= 6. RESULTADOS ================= -->
+    <section id="resultados">
+      <div class="head">
+        <span class="section-num">06 — Resultados: pronóstico 2026 y comparación con lo observado</span>
+        <h2>90 días de prueba en tiempo real: enero–marzo de 2026</h2>
+        <p class="lead">Con los mejores modelos por zona, se generó un pronóstico recursivo día a día para el primer trimestre
+          de 2026 (270 comparaciones: 90 días × 3 zonas) y se comparó contra la SST realmente observada por NOAA OISST en ese
+          mismo periodo, aplicando Hobday a ambas series de forma independiente.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Eventos MHW observados en el trimestre (ene–mar 2026)</h3>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Zona</th><th>Evento</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Int. acumulada</th></tr></thead>
+            <tbody>
+              <tr><td>Norte</td><td>1</td><td>2026-02-16</td><td>2026-02-23</td><td>8 d</td><td>10.31 °C·d</td></tr>
+              <tr><td>Norte</td><td>2</td><td>2026-03-07</td><td>2026-03-20</td><td>14 d</td><td>21.73 °C·d</td></tr>
+              <tr><td>Centro</td><td>1</td><td>2026-02-25</td><td>2026-03-01</td><td>5 d</td><td>5.49 °C·d</td></tr>
+              <tr><td>Centro</td><td>2</td><td>2026-03-08</td><td>2026-03-21</td><td>14 d</td><td>16.54 °C·d</td></tr>
+              <tr><td>Sur</td><td>1 (en curso)</td><td>2026-01-18</td><td>2026-04-13*</td><td>86 d*</td><td>105.09 °C·d*</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="chart-note">*El evento de la zona Sur comenzó dentro de la ventana de comparación y se extendió más allá
+            de marzo; la duración total observada con datos hasta junio de 2026 es de 86 días (categoría "III · Alta").</p>
+        </div>
+        <div class="card">
+          <h3>Eventos MHW detectados a partir de la SST predicha</h3>
+          <div class="callout coral" style="margin-top:6px;">
+            <p style="margin:0;"><strong>0 eventos</strong> — el pronóstico recursivo de Random Forest para el primer
+              trimestre de 2026 no cruzó el umbral P90 el tiempo suficiente en ninguna zona para confirmar un evento MHW,
+              pese a que la SST observada sí lo hizo en las tres zonas.</p>
+          </div>
+          <h4 style="margin-top:16px;">Lectura del resultado</h4>
+          <p style="font-size:.9rem;">El modelo predice bien la magnitud general de la SST (errores diarios de entre
+            ~0.07 °C y ~0.27 °C en las primeras observaciones comparadas), pero en un pronóstico recursivo el error se
+            acumula día a día y tiende a "suavizar" los picos térmicos que definen una MHW. El resultado es consistente con
+            la limitación metodológica anticipada: la detección de eventos extremos es más sensible al error de predicción
+            que la predicción de la SST promedio.</p>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h4 style="color:var(--navy-deep)">Días comparados</h4>
+          <div class="kpi" style="background:var(--bg);border-color:var(--line);">
+            <div class="val" style="color:var(--navy-deep)">270</div>
+            <div class="lbl" style="color:var(--muted)">90 días × 3 zonas, 2026-01-01 a 2026-03-31</div>
+          </div>
+        </div>
+        <div class="card">
+          <h4 style="color:var(--navy-deep)">Eventos observados</h4>
+          <div class="kpi" style="background:var(--bg);border-color:var(--line);">
+            <div class="val" style="color:var(--navy-deep)">5</div>
+            <div class="lbl" style="color:var(--muted)">En el trimestre, en las 3 zonas del modelo</div>
+          </div>
+        </div>
+        <div class="card">
+          <h4 style="color:var(--navy-deep)">Eventos capturados por el modelo</h4>
+          <div class="kpi" style="background:var(--bg);border-color:var(--line);">
+            <div class="val" style="color:var(--coral)">0</div>
+            <div class="lbl" style="color:var(--muted)">Falsos negativos totales en el horizonte recursivo probado</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 7. CONTRIBUCIONES ================= -->
+    <section id="contribuciones">
+      <div class="head">
+        <span class="section-num">07 — Contribuciones esperadas</span>
+        <h2>Aportes concretos y verificables</h2>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <ul class="clean">
+            <li><strong>Predicción ambiental reproducible:</strong> un pipeline que estima la SST diaria por zona con R² entre
+              0.995 y 0.998 usando únicamente variables temporales y rezagadas, sin depender de forzantes atmosféricos que no
+              siempre están disponibles en tiempo real.</li>
+            <li><strong>Separación metodológica predicción/detección:</strong> aplica Hobday sobre SST observada y sobre SST
+              predicha de forma independiente, permitiendo aislar si el error proviene del modelo de temperatura o del
+              criterio de detección climática.</li>
+            <li><strong>Comparación regional cuantificada:</strong> evidencia, con las mismas métricas, que la zona Sur es
+              donde el modelo predice mejor la SST (RMSE 0.105 °C) y Norte donde predice peor (RMSE 0.161 °C), orientando
+              dónde priorizar mejoras futuras del modelo.</li>
+            <li><strong>Alerta operativa temprana sobre limitaciones:</strong> la validación en tiempo real de 2026 demuestra,
+              con datos nuevos no usados en el entrenamiento, que el pronóstico recursivo no debe usarse todavía como única
+              fuente de alerta de MHW sin un mecanismo de corrección de error acumulado.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Base de datos exportada</h3>
+          <p style="font-size:.9rem;">El notebook exporta 10 tablas reutilizables para el informe, Canva y este dashboard:
+            SST diaria por zona con MHW, eventos MHW observados, resumen anual, dataset de machine learning, comparación de
+            configuraciones RF, mejores modelos por zona, predicciones y eventos derivados de la SST predicha, e importancia
+            de variables.</p>
+          <div class="num-row">
+            <span class="pill">10 tablas CSV</span>
+            <span class="pill">156 eventos históricos</span>
+            <span class="pill">52 436 registros de ML</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 8. CONCLUSIONES ================= -->
+    <section id="conclusiones">
+      <div class="head">
+        <span class="section-num">08 — Conclusiones, recomendaciones y limitaciones</span>
+        <h2>Síntesis final</h2>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Síntesis de hallazgos</h3>
+          <ul class="clean">
+            <li>Se identificaron <strong>156 eventos MHW observados</strong> en las cuatro zonas entre 1990 y 2026. El año con
+              más días MHW en todas las zonas fue <strong>2023</strong>, seguido por 1997 y 1998 (el episodio El Niño 1997–98
+              produjo el evento más extremo del registro: 408 días en la zona Centro).</li>
+            <li>La comparación zonal mostró que <strong>Sur</strong> presentó el mejor desempeño predictivo (menor RMSE,
+              mayor R²), mientras que <strong>Norte</strong> registró el mayor número de eventos de categoría "Alta" y
+              "Extrema" combinadas (7 de 39 eventos), consistente con su mayor exposición a variabilidad de El Niño costero.</li>
+            <li>En la predicción de SST, el mejor desempeño se obtuvo en la zona <strong>Sur</strong> con el modelo
+              <strong>RF_3_profundo</strong>, alcanzando un RMSE de <strong>0.105 °C</strong> y un R² de <strong>0.998</strong>.</li>
+            <li>Al aplicar Hobday sobre la SST predicha en el conjunto de prueba histórico, la detección de MHW derivada
+              alcanzó un F1 de hasta <strong>0.94</strong> (zona Norte); sin embargo, en el pronóstico recursivo real de 2026
+              el F1 efectivo fue <strong>0</strong>, porque no se confirmó ningún evento pese a que sí ocurrieron 5 en la
+              realidad.</li>
+            <li>Como limitación central, pequeños errores de SST cerca del umbral P90 —del orden de décimas de grado—
+              pueden cambiar la clasificación de un día como MHW o no MHW, y ese efecto se agrava cuando el pronóstico es
+              recursivo y el error se acumula.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Recomendaciones técnicas</h3>
+          <ul class="clean">
+            <li>Actualizar el modelo periódicamente con datos observados recientes para reducir la acumulación de error en
+              predicciones recursivas de varios días.</li>
+            <li>Priorizar horizontes cortos de predicción (1–7 días) cuando el objetivo sea alerta temprana operativa, en
+              lugar de pronósticos trimestrales recursivos.</li>
+            <li>Complementar la SST con variables oceanográficas y atmosféricas de mayor resolución (viento, ICEN diario si
+              existiera) para reducir el sesgo cerca del umbral P90.</li>
+            <li>Evaluar la detección MHW no solo por número de días, sino también por duración, intensidad máxima e
+              intensidad acumulada, ya que un evento puede perderse en días pero mantenerse relevante en severidad.</li>
+          </ul>
+          <h3 style="margin-top:22px;">Limitaciones</h3>
+          <ul class="clean">
+            <li>La predicción de varios días se realiza de forma recursiva (cada predicción alimenta la siguiente), por lo
+              que los errores se acumulan progresivamente.</li>
+            <li>El promedio espacial por zona puede ocultar procesos locales de menor escala, como afloramiento costero
+              localizado.</li>
+            <li>El ICEN es mensual, por lo que funciona como variable de contexto climático y no como señal diaria.</li>
+            <li>La cobertura 2026 es parcial (hasta el 16 de junio), por lo que las comparaciones de ese año no representan
+              el ciclo anual completo.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="authors">Lucila Carolina Condezo Inocencio · Lizett Avelina Alejo Huamani · Nicoll Yrene Aguilar Quispe · María Fernanda Velarde Salazar</div>
+      Ciencia de Datos Ambientales (CDA) · Universidad de Ingeniería y Tecnología — UTEC<br>
+      Fuentes de datos: NOAA OISST v2.1 (SST diaria, dominio costero peruano recortado, 438 archivos 1990–2026) ·
+      ICEN — Índice Costero El Niño (IGP/ENFEN) · ERA5 — viento u10/v10 (Copernicus/ECMWF)<br>
+      Procesamiento propio en Python (xarray, pandas, scikit-learn) · Dashboard generado a partir de los resultados
+      exportados del notebook del proyecto.
+    </footer>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   DATOS REALES extraídos de la ejecución del notebook
+   ============================================================ */
+
+const edaStats = [
+  {zona:'Centro',     n:13316, mean:22.454, std:2.514, min:17.523, q1:20.151, med:22.395, q3:24.724, max:28.287},
+  {zona:'Norte',      n:13316, mean:23.483, std:2.182, min:19.000, q1:21.677, med:23.306, q3:25.176, max:29.257},
+  {zona:'Perú total', n:13316, mean:21.796, std:2.251, min:17.536, q1:19.759, med:21.652, q3:23.801, max:26.976},
+  {zona:'Sur',        n:13316, mean:20.546, std:2.190, min:16.649, q1:18.545, med:20.296, q3:22.557, max:25.576},
+];
+
+const modelos = [
+  {zona:'Norte',  modelo:'RF_1_conservador', mae:0.1481, rmse:0.1946, r2:0.9923, bias:-0.0068, prec:0.9543, rec:0.8978, f1:0.9252, acc:0.9751},
+  {zona:'Norte',  modelo:'RF_2_intermedio',  mae:0.1232, rmse:0.1634, r2:0.9946, bias:-0.0055, prec:0.9661, rec:0.9289, f1:0.9471, acc:0.9822},
+  {zona:'Norte',  modelo:'RF_3_profundo',    mae:0.1222, rmse:0.1615, r2:0.9947, bias:-0.0073, prec:0.9702, rec:0.9156, f1:0.9421, acc:0.9807},
+  {zona:'Centro', modelo:'RF_1_conservador', mae:0.1037, rmse:0.1458, r2:0.9968, bias:-0.0078, prec:0.9661, rec:0.8679, f1:0.9144, acc:0.9715},
+  {zona:'Centro', modelo:'RF_2_intermedio',  mae:0.0874, rmse:0.1280, r2:0.9975, bias:-0.0062, prec:0.9704, rec:0.9028, f1:0.9353, acc:0.9781},
+  {zona:'Centro', modelo:'RF_3_profundo',    mae:0.0864, rmse:0.1254, r2:0.9976, bias:-0.0071, prec:0.9718, rec:0.8999, f1:0.9344, acc:0.9779},
+  {zona:'Sur',    modelo:'RF_1_conservador', mae:0.0898, rmse:0.1305, r2:0.9966, bias:-0.0109, prec:0.9558, rec:0.8593, f1:0.9050, acc:0.9723},
+  {zona:'Sur',    modelo:'RF_2_intermedio',  mae:0.0738, rmse:0.1082, r2:0.9977, bias:-0.0083, prec:0.9515, rec:0.9089, f1:0.9297, acc:0.9789},
+  {zona:'Sur',    modelo:'RF_3_profundo',    mae:0.0724, rmse:0.1054, r2:0.9978, bias:-0.0090, prec:0.9552, rec:0.9172, f1:0.9358, acc:0.9807},
+];
+
+const topYears = {
+  'Perú total': [{a:2023,d:314},{a:1997,d:243},{a:1998,d:213},{a:2015,d:163},{a:2026,d:134}],
+  'Norte':      [{a:2023,d:274},{a:1997,d:243},{a:2015,d:212},{a:1998,d:171},{a:2026,d:81}],
+  'Centro':     [{a:2023,d:300},{a:1997,d:242},{a:1998,d:216},{a:2015,d:203},{a:2026,d:92}],
+  'Sur':        [{a:2023,d:269},{a:1997,d:259},{a:1998,d:182},{a:2016,d:132},{a:2017,d:125}],
+};
+
+const zoneColor = {Norte:'#DD5A36', Centro:'#1C7C93', Sur:'#123049', 'Perú total':'#8A8375'};
+
+/* ---------- Hero SST range stripes ---------- */
+(function(){
+  const wrap = document.getElementById('stripes');
+  const globalMin = 16.6, globalMax = 29.3;
+  edaStats.forEach(z=>{
+    const row = document.createElement('div'); row.className='stripe';
+    const name = document.createElement('div'); name.className='zname'; name.textContent=z.zona;
+    const track = document.createElement('div'); track.className='track';
+    const left = ((z.min-globalMin)/(globalMax-globalMin))*100;
+    const width = ((z.max-z.min)/(globalMax-globalMin))*100;
+    const medPos = ((z.med-globalMin)/(globalMax-globalMin))*100;
+    const range = document.createElement('div'); range.className='range';
+    range.style.left = left+'%'; range.style.width = width+'%';
+    const med = document.createElement('div'); med.className='median-mark';
+    med.style.left = medPos+'%';
+    track.appendChild(range); track.appendChild(med);
+    row.appendChild(name); row.appendChild(track);
+    wrap.appendChild(row);
+  });
+})();
+
+/* ---------- EDA table ---------- */
+(function(){
+  const tbody = document.getElementById('eda-table');
+  edaStats.forEach(z=>{
+    tbody.innerHTML += `<tr><td>${z.zona}</td><td>${z.n.toLocaleString('es-PE')}</td><td>${z.mean.toFixed(2)}</td><td>${z.std.toFixed(2)}</td><td>${z.min.toFixed(2)}</td><td>${z.q1.toFixed(2)}</td><td>${z.med.toFixed(2)}</td><td>${z.q3.toFixed(2)}</td><td>${z.max.toFixed(2)}</td></tr>`;
+  });
+})();
+
+/* ---------- Modelos table ---------- */
+(function(){
+  const tbody = document.getElementById('modelos-table');
+  modelos.forEach(m=>{
+    const best = m.modelo==='RF_3_profundo';
+    tbody.innerHTML += `<tr>
+      <td>${m.zona}</td>
+      <td>${m.modelo} ${best?'<span class="tag best">mejor</span>':''}</td>
+      <td>${m.mae.toFixed(4)}</td><td>${m.rmse.toFixed(4)}</td><td>${m.r2.toFixed(4)}</td><td>${m.bias.toFixed(4)}</td>
+      <td>${m.prec.toFixed(4)}</td><td>${m.rec.toFixed(4)}</td><td>${m.f1.toFixed(4)}</td><td>${m.acc.toFixed(4)}</td>
+    </tr>`;
+  });
+})();
+
+/* ---------- Chart.js defaults ---------- */
+Chart.defaults.font.family = "'Inter',sans-serif";
+Chart.defaults.color = '#5C6B70';
+Chart.defaults.font.size = 11;
+
+const zonas3 = ['Norte','Centro','Sur'];
+const cfgs = ['RF_1_conservador','RF_2_intermedio','RF_3_profundo'];
+const cfgColors = ['#B9C7C4','#5FA8B8','#123049'];
+
+function seriesFor(metric){
+  return cfgs.map((cfg,i)=>({
+    label: cfg,
+    backgroundColor: cfgColors[i],
+    data: zonas3.map(z => modelos.find(m=>m.zona===z && m.modelo===cfg)[metric])
+  }));
+}
+
+new Chart(document.getElementById('chartRmse'), {
+  type:'bar',
+  data:{labels:zonas3, datasets:seriesFor('rmse')},
+  options:{
+    responsive:true,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+    scales:{y:{title:{display:true,text:'RMSE SST (°C)'}}}
+  }
+});
+
+new Chart(document.getElementById('chartR2'), {
+  type:'bar',
+  data:{labels:zonas3, datasets:seriesFor('r2')},
+  options:{
+    responsive:true,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+    scales:{y:{min:0.99, title:{display:true,text:'R² SST'}}}
+  }
+});
+
+/* ---------- Box-range chart (EDA) ---------- */
+new Chart(document.getElementById('chartBox'), {
+  type:'bar',
+  data:{
+    labels: edaStats.map(z=>z.zona),
+    datasets:[
+      {
+        label:'Rango Q1–Q3',
+        data: edaStats.map(z=>[z.q1,z.q3]),
+        backgroundColor: edaStats.map(z=>zoneColor[z.zona]+'AA'),
+        borderRadius:4,
+        barThickness:26
+      },
+      {
+        label:'Mín–Máx',
+        data: edaStats.map(z=>[z.min,z.max]),
+        backgroundColor: 'rgba(0,0,0,0.06)',
+        borderRadius:4,
+        barThickness:8
+      }
+    ]
+  },
+  options:{
+    indexAxis:'y',
+    responsive:true,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+    scales:{x:{title:{display:true,text:'SST (°C)'}}}
+  }
+});
+
+/* ---------- Top years chart ---------- */
+new Chart(document.getElementById('chartTopYears'), {
+  type:'bar',
+  data:{
+    labels:['1º','2º','3º','4º','5º'],
+    datasets: Object.keys(topYears).map(z=>({
+      label:z,
+      backgroundColor: zoneColor[z],
+      data: topYears[z].map(y=>y.d)
+    }))
+  },
+  options:{
+    responsive:true,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},
+      tooltip:{callbacks:{
+        title: (items)=> items[0].dataset.label,
+        label: (item)=> {
+          const y = topYears[item.dataset.label][item.dataIndex];
+          return `${y.a}: ${y.d} días MHW`;
+        }
+      }}
+    },
+    scales:{y:{title:{display:true,text:'Días MHW en el año'}}}
+  }
+});
+
+/* ---------- Leaflet map ---------- */
+(function(){
+  const map = L.map('map', {scrollWheelZoom:false}).setView([-10, -79], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'&copy; OpenStreetMap contributors', maxZoom: 9
+  }).addTo(map);
+
+  const zones = [
+    {name:'Norte',  color:'#DD5A36', bounds:[[0,-85],[-6,-75]]},
+    {name:'Centro', color:'#1C7C93', bounds:[[-6,-85],[-13,-75]]},
+    {name:'Sur',    color:'#123049', bounds:[[-13,-85],[-20,-75]]},
+  ];
+  zones.forEach(z=>{
+    L.rectangle(z.bounds, {color:z.color, weight:1.5, fillOpacity:0.18})
+      .addTo(map)
+      .bindPopup(`<strong>Zona ${z.name}</strong><br>Promedio espacial de SST NOAA OISST usado como serie de la zona.`);
+  });
+
+  const refs = [
+    {name:'Tumbes', lat:-3.57, lon:-80.45},
+    {name:'Lima', lat:-12.05, lon:-77.03},
+    {name:'Ica', lat:-14.07, lon:-75.73},
+  ];
+  refs.forEach(r=>{
+    L.circleMarker([r.lat, r.lon], {radius:4, color:'#0B1F2A', fillColor:'#fff', fillOpacity:1, weight:1.5})
+      .addTo(map).bindTooltip(r.name, {permanent:false});
+  });
+})();
+
+/* ---------- Scroll spy for sidenav ---------- */
+(function(){
+  const links = document.querySelectorAll('#sidenav a');
+  const sections = Array.from(links).map(a=>document.querySelector(a.getAttribute('href')));
+  window.addEventListener('scroll', ()=>{
+    let idx = 0;
+    sections.forEach((s,i)=>{ if(s && window.scrollY >= s.offsetTop - 120) idx = i; });
+    links.forEach((a,i)=>a.classList.toggle('active', i===idx));
+  });
+})();
+</script>
+</body>
+</html>
